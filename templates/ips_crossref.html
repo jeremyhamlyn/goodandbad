@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}IP Cross Reference{% endblock %}
+{% block content %}
+<div class="page-main">
+  <div class="section-header">
+    <h4 class="mb-0"><i class="bi bi-intersect me-2 text-warning"></i>IP Cross-Source Agreement</h4>
+    <small class="text-muted">IPs independently flagged by multiple sources — highest confidence threat indicators</small>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-light">{{ "{:,}".format(xref.total_ips) }}</div>
+        <div class="text-muted small">Unique IPs</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-secondary">{{ xref.pct_solo }}%</div>
+        <div class="text-muted small">Single source only</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.solo) }} IPs</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/ips/crossref?min=2" class="stat-card text-center" style="text-decoration:none;color:inherit;">
+        <div class="stat-num text-warning">{{ xref.pct_two_plus }}%</div>
+        <div class="text-muted small">2+ sources agree ↗</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.two_plus) }} IPs</div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/ips/crossref?min=3" class="stat-card text-center" style="text-decoration:none;color:inherit;">
+        <div class="stat-num text-danger">{{ xref.pct_three_plus }}%</div>
+        <div class="text-muted small">3+ sources agree ↗</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.three_plus) }} IPs — highest confidence</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- confidence bar -->
+  <div class="mb-4 p-3 rounded" style="background:#161b22;border:1px solid #21262d;">
+    <div class="small text-muted mb-2">Confidence breakdown across {{ "{:,}".format(xref.total_ips) }} unique IPs</div>
+    <div class="d-flex rounded overflow-hidden mb-1" style="height:20px;">
+      <div style="width:{{ xref.pct_three_plus }}%;background:#da3633;"></div>
+      <div style="width:{{ [xref.pct_two_plus - xref.pct_three_plus, 0]|max }}%;background:#d29922;"></div>
+      <div style="width:{{ xref.pct_solo }}%;background:#30363d;"></div>
+    </div>
+    <div class="d-flex gap-3 small">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#da3633;border-radius:2px;" class="me-1"></span>3+ sources ({{ xref.pct_three_plus }}%)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;" class="me-1"></span>2 sources ({{ [xref.pct_two_plus - xref.pct_three_plus, 0]|max }}%)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#30363d;border-radius:2px;" class="me-1"></span>1 source ({{ xref.pct_solo }}%)</span>
+    </div>
+  </div>
+
+  <!-- before/after comparison -->
+  {% if xref.subnet_total %}
+  <div class="mb-4 p-3 rounded" style="background:#161b22;border:1px solid #21262d;">
+    <div class="small fw-bold mb-2"><i class="bi bi-arrow-up-circle text-success me-1"></i>Subnet normalisation effect</div>
+    <div class="row g-3 text-center">
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Single-source IPs (exact)</div>
+        <div class="fw-bold text-secondary">{{ xref.pct_solo }}%</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.solo) }} IPs</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Single-source /24 subnets</div>
+        <div class="fw-bold text-success">{{ xref.subnet_pct_solo }}%</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.subnet_solo) }} subnets</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">2+ sources (exact IP)</div>
+        <div class="fw-bold text-warning">{{ xref.pct_two_plus }}%</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">2+ sources (/24 subnet)</div>
+        <div class="fw-bold text-danger">{{ xref.subnet_pct_two_plus }}%</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center mb-4">
+    <input class="form-control form-control-sm bg-dark border-secondary text-light"
+           style="max-width:220px" type="search" name="q"
+           placeholder="Filter by IP…" value="{{ search }}">
+    <div class="btn-group btn-group-sm">
+      {% for m in [2,3,4,5] %}
+      <a href="/ips/crossref?min={{ m }}&q={{ search }}&subnet={{ '1' if by_subnet else '0' }}"
+         class="btn btn-outline-{{ 'warning' if m==2 else 'danger' if m==3 else 'secondary' }} {% if min_src==m %}active{% endif %}">
+        {{ m }}+ sources
+      </a>
+      {% endfor %}
+    </div>
+    <a href="/ips/crossref?min={{ min_src }}&q={{ search }}&subnet={{ '0' if by_subnet else '1' }}"
+       class="btn btn-sm btn-outline-{{ 'warning' if by_subnet else 'info' }}">
+      {% if by_subnet %}<i class="bi bi-hdd-network me-1"></i>Exact IPs{% else %}<i class="bi bi-grid me-1"></i>/24 Subnets{% endif %}
+    </a>
+    {% if search %}<a href="/ips/crossref?min={{ min_src }}&subnet={{ '1' if by_subnet else '0' }}" class="btn btn-sm btn-outline-danger">Clear</a>{% endif %}
+  </form>
+
+  <div class="mb-2 text-muted small">
+    {{ "{:,}".format(total) }} {% if by_subnet %}/24 subnets{% else %}IPs{% endif %} confirmed by {{ min_src }}+ independent sources
+    {% if search %} matching "{{ search }}"{% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th style="width:70px">Sources</th>
+          <th>Confirmed by</th>
+          <th>Categories</th>
+          <th>Malware</th>
+          <th>Country</th>
+          <th>First Seen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ip in sites %}
+        <tr>
+          <td style="font-family:monospace;">{{ ip.group_key }}
+            {% if ip.ip_count is defined and ip.ip_count > 1 %}
+            <span class="tag ms-1">{{ ip.ip_count }} IPs</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge {% if ip.source_count >= 4 %}bg-danger{% elif ip.source_count >= 3 %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-6">
+              {{ ip.source_count }}
+            </span>
+          </td>
+          <td>
+            {% for s in ip.sources.split(',') %}
+            <span class="source-pill me-1">{{ s.strip() }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% for c in ip.categories.split(',') | unique %}
+            {% set c = c.strip() %}
+            {% if c in ip_categories %}
+            <span class="badge
+              {% if c=='c2' %}bg-danger
+              {% elif c in ('attack','brute_force') %}bg-warning text-dark
+              {% elif c=='scanner' %}bg-info text-dark
+              {% elif c=='tor' %}bg-secondary
+              {% else %}bg-secondary{% endif %} me-1">
+              {{ ip_categories[c].label }}
+            </span>
+            {% endif %}
+            {% endfor %}
+          </td>
+          <td class="small">
+            {% if ip.malwares %}
+              {% for m in ip.malwares.split(',') | unique %}
+                {% set m = m.strip() %}
+                {% if m and m != 'None' %}<span class="tag">{{ m }}</span>{% endif %}
+              {% endfor %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">
+            {% if ip.countries %}
+              {% for c in ip.countries.split(',') | unique %}
+                {% set c = c.strip() %}{% if c and c != 'None' %}{{ c }} {% endif %}
+              {% endfor %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">{{ (ip.first_seen or '')[:10] }}</td>
+          <td>
+            <a href="https://www.shodan.io/host/{{ ip.ip }}"
+               target="_blank" rel="noopener noreferrer"
+               class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.7rem;">
+              Shodan <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not sites %}
+        <tr><td colspan="8" class="text-center text-muted py-4">
+          No IPs with {{ min_src }}+ sources{% if search %} matching "{{ search }}"{% endif %}.
+        </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <nav>
+    <ul class="pagination pagination-sm justify-content-center">
+      <li class="page-item {% if page==1 %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page-1 }}&min={{ min_src }}&q={{ search }}">‹</a>
+      </li>
+      {% for p in range([1, page-3]|max, [pages+1, page+4]|min) %}
+      <li class="page-item {% if p==page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&min={{ min_src }}&q={{ search }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if page==pages %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page+1 }}&min={{ min_src }}&q={{ search }}">›</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

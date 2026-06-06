@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Good &amp; Bad{% endblock %} — Site Intelligence</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .navbar-brand { font-weight: 700; letter-spacing: 1px; }
+    .navbar { border-bottom: 1px solid #21262d; background: #161b22 !important; }
+    .sidebar { min-height: calc(100vh - 56px); border-right: 1px solid #21262d; background: #161b22; padding-top: 1.5rem; }
+    .sidebar .nav-link { color: #8b949e; border-radius: 6px; margin: 2px 8px; padding: 8px 12px; }
+    .sidebar .nav-link:hover { background: #21262d; color: #e6edf3; }
+    .sidebar .nav-link.active { background: #21262d; color: #e6edf3; font-weight: 600; }
+    .badge-cat-malware    { background: #da3633 !important; }
+    .badge-cat-phishing   { background: #d29922 !important; color:#000; }
+    .badge-cat-adult      { background: #8957e5 !important; }
+    .badge-cat-gambling   { background: #0d8a6a !important; }
+    .badge-cat-advertising{ background: #58a6ff !important; color:#000; }
+    .stat-card { border: 1px solid #21262d; background: #161b22; border-radius: 10px; padding: 1.2rem 1.5rem; text-decoration:none; color:inherit; display:block; transition: border-color .2s; }
+    .stat-card:hover { border-color: #58a6ff; color:inherit; }
+    .stat-card .stat-num { font-size: 2rem; font-weight: 700; }
+    .table { --bs-table-bg: transparent; }
+    .table > :not(caption) > * > * { border-color: #21262d; }
+    .table thead th { color: #8b949e; font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; }
+    .domain-cell { font-family: monospace; font-size: .85rem; }
+    .url-cell { font-family: monospace; font-size: .75rem; color: #8b949e; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .page-main { padding: 2rem; }
+    .tag { background: #21262d; border-radius: 4px; padding: 1px 7px; font-size: .75rem; margin: 1px; display: inline-block; }
+    .section-header { border-bottom: 1px solid #21262d; padding-bottom: .75rem; margin-bottom: 1.5rem; }
+    .source-pill { border: 1px solid #21262d; border-radius: 20px; padding: 2px 10px; font-size: .75rem; color: #8b949e; }
+    .status-online  { color: #3fb950; }
+    .status-offline { color: #da3633; }
+    .status-unknown { color: #8b949e; }
+    .text-purple { color: #8957e5; }
+    .spinner-wrap { display:none; }
+    .pagination .page-link { background: #161b22; border-color: #21262d; color: #e6edf3; }
+    .pagination .page-link:hover { background: #21262d; }
+    .pagination .active .page-link { background: #1f6feb; border-color: #1f6feb; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <a class="navbar-brand text-danger" href="/">
+      <i class="bi bi-shield-fill-exclamation me-2"></i>Good &amp; Bad
+    </a>
+    <form class="d-flex ms-auto me-3" action="/search" method="get">
+      <input class="form-control form-control-sm bg-dark border-secondary text-light me-2" style="width:260px"
+             type="search" name="q" placeholder="Search domains, tags, threats…"
+             value="{{ request.args.get('q','') }}">
+      <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <a class="btn btn-sm btn-outline-warning me-2" href="/scoping-document">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Scoping Doc
+    </a>
+    <button class="btn btn-sm btn-outline-danger" id="refreshBtn" onclick="triggerRefresh()">
+      <i class="bi bi-arrow-repeat me-1"></i>Refresh Data
+    </button>
+  </div>
+</nav>
+
+<div class="d-flex">
+  <div class="sidebar d-none d-md-block" style="width:220px; flex-shrink:0;">
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.endpoint=='index' %}active{% endif %}" href="/">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+      </a>
+      <div class="px-3 mt-3 mb-1" style="font-size:.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">Categories</div>
+      {% for cat, meta in categories.items() %}
+      <a class="nav-link {% if request.endpoint=='category' and cat==cat %}{% endif %}
+                {% if request.endpoint=='category' and request.view_args.get('cat')==cat %}active{% endif %}"
+         href="/category/{{ cat }}">
+        <i class="bi bi-{{ meta.icon }} me-2"></i>{{ meta.label }}
+      </a>
+      {% endfor %}
+      <div class="px-3 mt-3 mb-1" style="font-size:.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">IPv4 Addresses</div>
+      <a class="nav-link {% if request.endpoint=='ips_dashboard' %}active{% endif %}" href="/ips">
+        <i class="bi bi-hdd-network me-2"></i>IP Dashboard
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='c2' %}active{% endif %}" href="/ips/category/c2">
+        <i class="bi bi-broadcast me-2"></i>C2 / Botnet
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='attack' %}active{% endif %}" href="/ips/category/attack">
+        <i class="bi bi-bug me-2"></i>Attack / Exploit
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='brute_force' %}active{% endif %}" href="/ips/category/brute_force">
+        <i class="bi bi-key me-2"></i>Brute Force
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='spam' %}active{% endif %}" href="/ips/category/spam">
+        <i class="bi bi-envelope-x me-2"></i>Spam Sources
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='scanner' %}active{% endif %}" href="/ips/category/scanner">
+        <i class="bi bi-eye me-2"></i>Scanners / Recon
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_category' and request.view_args.get('cat')=='tor' %}active{% endif %}" href="/ips/category/tor">
+        <i class="bi bi-shield-lock me-2"></i>Tor Exit Nodes
+      </a>
+      <a class="nav-link {% if request.endpoint=='ips_crossref' %}active{% endif %}" href="/ips/crossref">
+        <i class="bi bi-intersect me-2"></i>IP Cross Ref
+      </a>
+      <div class="px-3 mt-3 mb-1" style="font-size:.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;">Info</div>
+      <a class="nav-link {% if request.endpoint=='crossref' %}active{% endif %}" href="/crossref">
+        <i class="bi bi-intersect me-2"></i>Cross Reference
+      </a>
+      <a class="nav-link {% if request.endpoint=='sources' %}active{% endif %}" href="/sources">
+        <i class="bi bi-database me-2"></i>Data Sources
+      </a>
+      <a class="nav-link {% if request.endpoint=='scoping_document' %}active{% endif %}" href="/scoping-document">
+        <i class="bi bi-file-earmark-pdf me-2 text-warning"></i>Scoping Document
+      </a>
+    </nav>
+  </div>
+
+  <div class="flex-grow-1">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<div id="refreshToast" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div class="toast align-items-center text-bg-warning border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body"><i class="bi bi-arrow-repeat me-2"></i>Refreshing all data sources… this takes 30–60 seconds.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function triggerRefresh() {
+  fetch('/api/refresh', {method:'POST'})
+    .then(() => {
+      const t = new bootstrap.Toast(document.getElementById('refreshToast'), {delay: 8000});
+      t.show();
+      setTimeout(() => location.reload(), 60000);
+    });
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

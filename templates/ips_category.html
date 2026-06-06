@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.label }} IPs{% endblock %}
+{% block content %}
+<div class="page-main">
+  <div class="section-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h4 class="mb-0">
+          <i class="bi bi-{{ meta.icon }} me-2
+            {% if meta.color=='danger' %}text-danger
+            {% elif meta.color=='warning' or meta.color=='orange' %}text-warning
+            {% elif meta.color=='purple' %}text-purple
+            {% elif meta.color=='info' %}text-info
+            {% else %}text-secondary{% endif %}"></i>
+          {{ meta.label }}
+        </h4>
+        <small class="text-muted">{{ meta.desc }}</small>
+      </div>
+      <span class="badge bg-secondary fs-6">{{ "{:,}".format(total) }} IPs</span>
+    </div>
+  </div>
+
+  <form method="get" class="d-flex gap-2 flex-wrap mb-4">
+    <input class="form-control form-control-sm bg-dark border-secondary text-light"
+           style="max-width:260px" type="search" name="q"
+           placeholder="Filter by IP, malware, country…" value="{{ search }}">
+    <select name="source" class="form-select form-select-sm bg-dark border-secondary text-light" style="max-width:200px">
+      <option value="">All sources</option>
+      {% for s in cat_sources %}
+      <option value="{{ s }}" {% if source_filter==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button>
+    {% if search or source_filter %}
+    <a href="/ips/category/{{ cat }}" class="btn btn-sm btn-outline-danger">Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+      <thead>
+        <tr>
+          <th style="width:140px">IP Address</th>
+          {% if cat == 'c2' %}<th>Malware Family</th><th>Port</th><th>Status</th>{% endif %}
+          {% if cat == 'attack' or cat == 'scanner' or cat == 'brute_force' %}<th>Country</th>{% endif %}
+          {% if cat == 'spam' %}<th>Country</th>{% endif %}
+          <th>Source</th>
+          <th>First Seen</th>
+          <th>Shodan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ip in sites %}
+        <tr>
+          <td style="font-family:monospace;font-size:.9rem;">{{ ip.ip }}{% if ip.cidr %}<span class="text-muted">/24</span>{% endif %}</td>
+          {% if cat == 'c2' %}
+          <td>{% if ip.malware %}<span class="tag">{{ ip.malware }}</span>{% else %}—{% endif %}</td>
+          <td class="text-muted small">{{ ip.port or '—' }}</td>
+          <td>
+            <span class="status-{{ ip.status }}">
+              <i class="bi bi-circle-fill" style="font-size:.5rem;vertical-align:middle;"></i>
+              {{ ip.status }}
+            </span>
+          </td>
+          {% endif %}
+          {% if cat in ('attack','scanner','brute_force','spam') %}
+          <td class="text-muted small">{{ ip.country or '—' }}</td>
+          {% endif %}
+          <td><span class="source-pill">{{ ip.source }}</span></td>
+          <td class="text-muted small">{{ (ip.date_added or '')[:10] }}</td>
+          <td>
+            <a href="https://www.shodan.io/host/{{ ip.ip }}"
+               target="_blank" rel="noopener noreferrer"
+               class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.7rem;">
+              Shodan <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not sites %}
+        <tr><td colspan="8" class="text-center text-muted py-4">
+          No IPs found{% if search %} for "{{ search }}"{% endif %}.
+          {% if total == 0 %}Click <strong>Refresh Data</strong> to fetch from sources.{% endif %}
+        </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <nav>
+    <ul class="pagination pagination-sm justify-content-center">
+      <li class="page-item {% if page==1 %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page-1 }}&q={{ search }}&source={{ source_filter }}">‹</a>
+      </li>
+      {% for p in range([1, page-3]|max, [pages+1, page+4]|min) %}
+      <li class="page-item {% if p==page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&q={{ search }}&source={{ source_filter }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if page==pages %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page+1 }}&q={{ search }}&source={{ source_filter }}">›</a>
+      </li>
+    </ul>
+    <div class="text-center text-muted small">Page {{ page }} of {{ pages }} — {{ "{:,}".format(total) }} total</div>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

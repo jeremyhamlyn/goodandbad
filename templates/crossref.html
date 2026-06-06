@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Cross Reference{% endblock %}
+{% block content %}
+<div class="page-main">
+  <div class="section-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0"><i class="bi bi-intersect me-2 text-warning"></i>Cross-Source Agreement</h4>
+      <small class="text-muted">Domains flagged independently by multiple data sources — higher agreement = higher confidence</small>
+    </div>
+  </div>
+
+  <!-- xref stat cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-light">{{ "{:,}".format(xref.total_domains) }}</div>
+        <div class="text-muted small">Unique domains</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/crossref?min=1" class="stat-card text-center" style="text-decoration:none;color:inherit;">
+        <div class="stat-num text-secondary">{{ xref.pct_solo }}%</div>
+        <div class="text-muted small">Single source only</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.solo) }} domains</div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/crossref?min=2" class="stat-card text-center" style="text-decoration:none;color:inherit;">
+        <div class="stat-num text-warning">{{ xref.pct_two_plus }}%</div>
+        <div class="text-muted small">2+ sources agree</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.two_plus) }} domains</div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="/crossref?min=3" class="stat-card text-center" style="text-decoration:none;color:inherit;">
+        <div class="stat-num text-danger">{{ xref.pct_three_plus }}%</div>
+        <div class="text-muted small">3+ sources agree</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.three_plus) }} domains — highest confidence</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- confidence bar -->
+  <div class="mb-4 p-3 rounded" style="background:#161b22;border:1px solid #21262d;">
+    <div class="small text-muted mb-2">Confidence breakdown across all {{ "{:,}".format(xref.total_domains) }} unique domains</div>
+    <div class="d-flex rounded overflow-hidden mb-1" style="height:20px;">
+      <div style="width:{{ xref.pct_three_plus }}%;background:#da3633;" title="{{ xref.pct_three_plus }}% flagged by 3+ sources"></div>
+      <div style="width:{{ [xref.pct_two_plus - xref.pct_three_plus, 0]|max }}%;background:#d29922;" title="{{ [xref.pct_two_plus - xref.pct_three_plus, 0]|max }}% flagged by 2 sources"></div>
+      <div style="width:{{ xref.pct_solo }}%;background:#30363d;" title="{{ xref.pct_solo }}% single source"></div>
+    </div>
+    <div class="d-flex gap-3 small">
+      <span><span style="display:inline-block;width:10px;height:10px;background:#da3633;border-radius:2px;" class="me-1"></span>3+ sources ({{ xref.pct_three_plus }}%)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;" class="me-1"></span>2 sources ({{ [xref.pct_two_plus - xref.pct_three_plus, 0]|max }}%)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#30363d;border-radius:2px;" class="me-1"></span>1 source ({{ xref.pct_solo }}%)</span>
+    </div>
+  </div>
+
+  <!-- filters -->
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center mb-4">
+    <input class="form-control form-control-sm bg-dark border-secondary text-light"
+           style="max-width:280px" type="search" name="q"
+           placeholder="Filter by domain…" value="{{ search }}">
+    <div class="btn-group btn-group-sm" role="group">
+      {% for m in [2,3,4,5] %}
+      <a href="/crossref?min={{ m }}&q={{ search }}"
+         class="btn btn-outline-{{ 'warning' if m==2 else 'danger' if m==3 else 'secondary' }} {% if min_src==m %}active{% endif %}">
+        {{ m }}+ sources
+      </a>
+      {% endfor %}
+    </div>
+    {% if search %}
+    <a href="/crossref?min={{ min_src }}" class="btn btn-sm btn-outline-danger">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- before/after comparison -->
+  {% if xref.clean_total %}
+  <div class="mb-4 p-3 rounded" style="background:#161b22;border:1px solid #21262d;">
+    <div class="small fw-bold mb-2"><i class="bi bi-arrow-up-circle text-success me-1"></i>Normalisation effect — before vs after</div>
+    <div class="row g-3 text-center">
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Unique groups (before)</div>
+        <div class="fw-bold">{{ "{:,}".format(xref.clean_total) }}</div>
+        <div style="font-size:.7rem;color:#8b949e;">by exact domain</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Unique groups (after)</div>
+        <div class="fw-bold text-success">{{ "{:,}".format(xref.total_domains) }}</div>
+        <div style="font-size:.7rem;color:#8b949e;">by registered domain (PSL)</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Single-source (before)</div>
+        <div class="fw-bold text-secondary">{{ xref.clean_pct_solo }}%</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.clean_solo) }} domains</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="small text-muted">Single-source (after)</div>
+        <div class="fw-bold text-success">{{ xref.pct_solo }}%</div>
+        <div style="font-size:.7rem;color:#8b949e;">{{ "{:,}".format(xref.solo) }} base domains</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mb-2 text-muted small">
+    Showing <strong>{{ "{:,}".format(total) }}</strong> registered domains confirmed by
+    <strong>{{ min_src }}+</strong> independent sources
+    {% if search %} matching "<strong>{{ search }}</strong>"{% endif %}
+    <span class="ms-2 tag">grouped by PSL registered domain</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Registered Domain</th>
+          <th style="width:80px">Sources</th>
+          <th style="width:80px">Subdomains</th>
+          <th>Confirmed by</th>
+          <th>Categories</th>
+          <th>Threat types</th>
+          <th>First seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for site in sites %}
+        {% set src_count = site.source_count %}
+        <tr>
+          <td class="domain-cell">
+            <a href="https://www.virustotal.com/gui/domain/{{ site.domain_base }}"
+               target="_blank" rel="noopener noreferrer"
+               class="text-decoration-none text-light" title="Check on VirusTotal">
+              {{ site.domain_base }}
+              <i class="bi bi-box-arrow-up-right ms-1" style="font-size:.65rem;opacity:.5;"></i>
+            </a>
+          </td>
+          <td>
+            <span class="badge {% if src_count >= 4 %}bg-danger{% elif src_count >= 3 %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-6">
+              {{ src_count }}
+            </span>
+          </td>
+          <td>
+            {% if site.subdomain_count is defined and site.subdomain_count > 1 %}
+            <span class="tag" title="{{ site.subdomain_count }} unique variants in DB">+{{ site.subdomain_count - 1 }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% for s in site.sources.split(',') %}
+            <span class="source-pill me-1">{{ s.strip() }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% for c in site.categories.split(',') | unique %}
+            {% set c = c.strip() %}
+            <span class="badge badge-cat-{{ c }} me-1">{{ categories[c].label if c in categories else c }}</span>
+            {% endfor %}
+          </td>
+          <td class="text-muted small">
+            {% if site.threat_types %}
+              {% for t in site.threat_types.split(',') | unique %}
+                {% set t = t.strip() %}
+                {% if t and t != 'None' %}<span class="tag">{{ t }}</span>{% endif %}
+              {% endfor %}
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ (site.first_seen or '')[:10] }}</td>
+        </tr>
+        {% endfor %}
+        {% if not sites %}
+        <tr><td colspan="6" class="text-center text-muted py-4">
+          No domains found with {{ min_src }}+ sources{% if search %} matching "{{ search }}"{% endif %}.
+          {% if xref.total_domains == 0 %}Click <strong>Refresh Data</strong> to load sources first.{% endif %}
+        </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <nav>
+    <ul class="pagination pagination-sm justify-content-center">
+      <li class="page-item {% if page==1 %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page-1 }}&min={{ min_src }}&q={{ search }}">‹</a>
+      </li>
+      {% for p in range([1, page-3]|max, [pages+1, page+4]|min) %}
+      <li class="page-item {% if p==page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&min={{ min_src }}&q={{ search }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if page==pages %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page+1 }}&min={{ min_src }}&q={{ search }}">›</a>
+      </li>
+    </ul>
+    <div class="text-center text-muted small">Page {{ page }} of {{ pages }}</div>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

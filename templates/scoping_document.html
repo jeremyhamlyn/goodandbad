@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Scoping Document{% endblock %}
+{% block content %}
+<div class="page-main">
+  <div class="section-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+    <div>
+      <h4 class="mb-0"><i class="bi bi-file-earmark-pdf me-2 text-warning"></i>Scoping Document</h4>
+      <small class="text-muted">System description, architecture, active filtering concepts, and deployment requirements</small>
+    </div>
+    <a href="/scoping-document/download" class="btn btn-warning">
+      <i class="bi bi-download me-1"></i>Download PDF
+    </a>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-warning">19</div>
+        <div class="text-muted small">Threat feeds</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-danger">10</div>
+        <div class="text-muted small">Domain sources</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-info">9</div>
+        <div class="text-muted small">IPv4 sources</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card text-center">
+        <div class="stat-num text-success">9</div>
+        <div class="text-muted small">Pages in document</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document sections -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #21262d;">
+        <h6 class="text-warning mb-2"><i class="bi bi-diagram-3 me-1"></i>System Architecture</h6>
+        <p class="text-muted small mb-2">
+          End-to-end data flow from 19 public threat feeds through the Python parsers, SQLite WAL database,
+          Flask web application, and dark-themed Bootstrap 5 browser UI. Includes component diagram.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>fetcher.py — domain/URL HTTP parsers</li>
+          <li>ip_fetcher.py — IPv4 HTTP parsers</li>
+          <li>SQLite DB — WAL mode, domain_base + ip_subnet columns</li>
+          <li>Flask app — 10 routes, JSON API</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #21262d;">
+        <h6 class="text-info mb-2"><i class="bi bi-intersect me-1"></i>Data Normalisation & Cross-Reference</h6>
+        <p class="text-muted small mb-2">
+          Two-stage domain normalisation using the Public Suffix List (PSL) and /24 subnet grouping for IPs.
+          Cross-source agreement engine with 2+, 3+, 4+ confidence tiers.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>PSL: subdomain → registered domain_base</li>
+          <li>/24 grouping: exact IP → subnet confidence</li>
+          <li>Before/after comparison panels in UI</li>
+          <li>All original data preserved at full resolution</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #30363d;">
+        <h6 class="text-danger mb-2"><i class="bi bi-fire me-1"></i>Active iptables Integration (Concept)</h6>
+        <p class="text-muted small mb-2">
+          First-packet trigger model: DROP rules are installed on-demand only when a connection to a
+          known-malicious destination is first attempted — not pre-loaded from the full database.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>First SYN exits (no prior knowledge required)</li>
+          <li>Good &amp; Bad DB lookup in parallel</li>
+          <li>DROP rule installed immediately if malicious</li>
+          <li>No handshake completes — no session established</li>
+          <li>ipset with TTL prevents unbounded rule growth</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #30363d;">
+        <h6 class="text-success mb-2"><i class="bi bi-globe me-1"></i>DNS Danger Extension (Concept)</h6>
+        <p class="text-muted small mb-2">
+          A structured TXT record carrying danger status, confidence, and source attribution.
+          Major resolvers (Google, Cloudflare) cache and propagate the field globally via normal DNS TTL
+          without requiring any modification.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>Backwards-compatible: ignored by non-aware resolvers</li>
+          <li>Propagates to billions of clients within minutes</li>
+          <li>Short TTL (5–15 min) for fast threat revocation</li>
+          <li>Feed attribution for trust weighting by clients</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #21262d;">
+        <h6 class="text-secondary mb-2"><i class="bi bi-cpu me-1"></i>Hardware Requirements</h6>
+        <p class="text-muted small mb-2">
+          Demand-driven enforcement keeps the active ruleset small regardless of database size.
+          No pre-loading of 500k+ entries into the kernel.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>Home/SOHO: Raspberry Pi 4, 2 GB RAM, 16 GB SD</li>
+          <li>Small office: any x86 mini-PC or VM, 4 GB RAM</li>
+          <li>Enterprise: VM on existing hypervisor, 8 GB RAM</li>
+          <li>No cloud required — fully self-hosted</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="p-3 rounded h-100" style="background:#161b22;border:1px solid #21262d;">
+        <h6 class="text-warning mb-2"><i class="bi bi-currency-dollar me-1"></i>Paid Source Comparison</h6>
+        <p class="text-muted small mb-2">
+          Good &amp; Bad uses exclusively free feeds. The document includes a comparison of premium
+          commercial intelligence options for teams needing higher-volume or specialised data.
+        </p>
+        <ul class="text-muted small mb-0 ps-3">
+          <li>Recorded Future: $50k–$500k/yr</li>
+          <li>Proofpoint ET Pro: ~$750/sensor/yr (best value)</li>
+          <li>IBM X-Force: $2k/10k records/mo</li>
+          <li>VirusTotal Enterprise, Shodan, Cisco Talos…</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Download CTA -->
+  <div class="p-4 rounded text-center" style="background:#161b22;border:1px solid #d29922;">
+    <h5 class="text-warning mb-1"><i class="bi bi-file-earmark-pdf me-2"></i>9-Page PDF with Architecture Diagrams</h5>
+    <p class="text-muted small mb-3">
+      Includes system architecture diagram, iptables trigger flow, and DNS extension concept diagram.
+      Generated locally — no external services required.
+    </p>
+    <a href="/scoping-document/download" class="btn btn-warning btn-lg">
+      <i class="bi bi-download me-2"></i>Download Scoping Document (PDF)
+    </a>
+  </div>
+
+</div>
+{% endblock %}

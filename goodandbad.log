@@ -1,0 +1,14 @@
+ERROR:root:  FeodoTracker failed: 404 Client Error: Not Found for url: https://feodotracker.abuse.ch/downloads/domainblocklist.txt
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8099
+ * Running on http://10.80.5.96:8099
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [27/Apr/2026 12:04:35] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Apr/2026 12:04:35] "GET /scoping-document HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [27/Apr/2026 12:04:39] "GET /scoping-document/download HTTP/1.1" 200 -
+INFO:werkzeug:10.80.5.61 - - [27/Apr/2026 12:08:52] "GET / HTTP/1.1" 200 -
+INFO:werkzeug:10.80.5.61 - - [27/Apr/2026 12:08:56] "GET /scoping-document HTTP/1.1" 200 -
+INFO:werkzeug:10.80.5.61 - - [27/Apr/2026 12:09:04] "GET /scoping-document/download HTTP/1.1" 200 -

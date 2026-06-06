@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.label }}{% endblock %}
+{% block content %}
+<div class="page-main">
+  <div class="section-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h4 class="mb-0">
+          <i class="bi bi-{{ meta.icon }} me-2
+            {% if meta.color == 'danger' %}text-danger
+            {% elif meta.color == 'warning' %}text-warning
+            {% elif meta.color == 'purple' %}text-purple
+            {% elif meta.color == 'info' %}text-info
+            {% else %}text-secondary{% endif %}"></i>
+          {{ meta.label }}
+        </h4>
+        <small class="text-muted">{{ meta.desc }}</small>
+      </div>
+      <span class="badge bg-secondary fs-6">{{ "{:,}".format(total) }} entries</span>
+    </div>
+  </div>
+
+  <!-- filters -->
+  <form method="get" class="d-flex gap-2 flex-wrap mb-4">
+    <input class="form-control form-control-sm bg-dark border-secondary text-light"
+           style="max-width:280px" type="search" name="q"
+           placeholder="Filter by domain, tag, threat…" value="{{ search }}">
+    <select name="source" class="form-select form-select-sm bg-dark border-secondary text-light" style="max-width:200px">
+      <option value="">All sources</option>
+      {% for s in cat_sources %}
+      <option value="{{ s }}" {% if source_filter==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button>
+    {% if search or source_filter %}
+    <a href="/category/{{ cat }}" class="btn btn-sm btn-outline-danger">Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle">
+      <thead>
+        <tr>
+          <th style="width:220px">Domain</th>
+          <th>URL</th>
+          {% if cat == 'malware' %}<th>Threat</th><th>Reporter</th>{% endif %}
+          {% if cat == 'phishing' %}<th>Tags</th>{% endif %}
+          {% if cat in ('adult','gambling','advertising') %}<th>Source</th>{% endif %}
+          <th>Status</th>
+          <th>Added</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for site in sites %}
+        <tr>
+          <td class="domain-cell">
+            <a href="https://www.virustotal.com/gui/domain/{{ site.domain }}"
+               target="_blank" rel="noopener noreferrer"
+               class="text-decoration-none text-light" title="Check on VirusTotal">
+              {{ site.domain }}
+              <i class="bi bi-box-arrow-up-right ms-1" style="font-size:.65rem;opacity:.5;"></i>
+            </a>
+          </td>
+          <td class="url-cell" title="{{ site.url }}">{{ site.url }}</td>
+          {% if cat == 'malware' %}
+          <td>
+            {% if site.threat_type %}<span class="tag">{{ site.threat_type }}</span>{% endif %}
+            {% if site.tags %}{% for t in site.tags.split(',') if t.strip() %}<span class="tag">{{ t.strip() }}</span>{% endfor %}{% endif %}
+          </td>
+          <td class="text-muted small">{{ site.reporter or '—' }}</td>
+          {% endif %}
+          {% if cat == 'phishing' %}
+          <td>
+            {% if site.tags %}{% for t in site.tags.split(',') if t.strip() %}<span class="tag">{{ t.strip() }}</span>{% endfor %}{% endif %}
+          </td>
+          {% endif %}
+          {% if cat in ('adult','gambling','advertising') %}
+          <td><span class="source-pill">{{ site.source }}</span></td>
+          {% endif %}
+          <td>
+            <span class="status-{{ site.status }}">
+              <i class="bi bi-circle-fill" style="font-size:.5rem;vertical-align:middle;"></i>
+              {{ site.status }}
+            </span>
+          </td>
+          <td class="text-muted small">{{ (site.date_added or '')[:10] }}</td>
+        </tr>
+        {% endfor %}
+        {% if not sites %}
+        <tr><td colspan="8" class="text-center text-muted py-4">
+          No records found{% if search %} for "<strong>{{ search }}</strong>"{% endif %}.
+          {% if total == 0 %}Click <strong>Refresh Data</strong> to fetch from sources.{% endif %}
+        </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- pagination -->
+  {% if pages > 1 %}
+  <nav>
+    <ul class="pagination pagination-sm justify-content-center">
+      <li class="page-item {% if page==1 %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page-1 }}&q={{ search }}&source={{ source_filter }}">‹</a>
+      </li>
+      {% for p in range([1, page-3]|max, [pages+1, page+4]|min) %}
+      <li class="page-item {% if p==page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&q={{ search }}&source={{ source_filter }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if page==pages %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page+1 }}&q={{ search }}&source={{ source_filter }}">›</a>
+      </li>
+    </ul>
+    <div class="text-center text-muted small">Page {{ page }} of {{ pages }} — {{ "{:,}".format(total) }} total</div>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}
